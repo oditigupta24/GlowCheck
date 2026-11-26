@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>[hidden]{display:none!important}</style>
+<title>GlowCheck</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: one 640px column. Sticky header with a scrollable tab row. The verdict is the only filled card; everything else sits on hairlines. */
+:root{
+  --bg:#f1f5f4; --surface:#ffffff; --surface2:#e6edeb; --ink:#13211f; --muted:#566865; --line:#d3dcd9;
+  --accent:#0b6b66; --accent-ink:#ffffff; --accent-soft:#d6ece9; --band:#dcefec; --sand:#e9d9c3;
+  --ok:#1b6e49; --ok-soft:#dcf1e6; --warn:#8f5206; --warn-soft:#f8ebd2; --stop:#a8231b; --stop-soft:#fbe0dd; --idle:#44565a; --idle-soft:#e3eaec;
+  --seg1:#0b6b66; --seg2:#5fada7; --seg3:#bcd2cf; --seg4:#e2d2ba;
+  --display:"Bricolage Grotesque","Inter",system-ui,sans-serif; --body:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0d1716; --surface:#152321; --surface2:#1c2d2a; --ink:#e6efed; --muted:#9db2ae; --line:#29403c;
+  --accent:#55c6be; --accent-ink:#06201e; --accent-soft:#183f3c; --band:#17332f; --sand:#4a3f2e;
+  --ok:#73d3a4; --ok-soft:#173a2a; --warn:#eab35b; --warn-soft:#3b2d12; --stop:#ff9086; --stop-soft:#43201d; --idle:#a9bdc1; --idle-soft:#1f2f33;
+  --seg1:#55c6be; --seg2:#2f8c86; --seg3:#25504c; --seg4:#6b5a3e; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d1716; --surface:#152321; --surface2:#1c2d2a; --ink:#e6efed; --muted:#9db2ae; --line:#29403c;
+  --accent:#55c6be; --accent-ink:#06201e; --accent-soft:#183f3c; --band:#17332f; --sand:#4a3f2e;
+  --ok:#73d3a4; --ok-soft:#173a2a; --warn:#eab35b; --warn-soft:#3b2d12; --stop:#ff9086; --stop-soft:#43201d; --idle:#a9bdc1; --idle-soft:#1f2f33;
+  --seg1:#55c6be; --seg2:#2f8c86; --seg3:#25504c; --seg4:#6b5a3e; color-scheme:dark}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font:400 16px/1.55 var(--body);margin:0;padding-block:0 3rem;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:640px;margin:0 auto}
+h1,h2,h3{font-family:var(--display);font-weight:700;line-height:1.15;margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:clamp(1.6rem,6vw,2.1rem)} h2{font-size:1.2rem} h3{font-size:1.02rem}
+p{margin:0}
+.muted{color:var(--muted)} .small{font-size:.875rem} .cap{font-size:.84rem;color:var(--muted);margin-top:.6rem}
+.eyebrow{font-size:.74rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+/* header */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-top:.9rem;border-bottom:1px solid var(--line)}
+.brandrow{display:flex;align-items:baseline;justify-content:space-between;gap:.75rem;flex-wrap:wrap}
+.logo{font-family:var(--display);font-weight:700;font-size:1.25rem}
+.tag{font-size:.78rem;color:var(--muted)}
+.tabs{display:flex;gap:.25rem;overflow-x:auto;scrollbar-width:none;margin-top:.55rem}
+.tabs::-webkit-scrollbar{display:none}
+.tab{appearance:none;background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);font:500 .92rem var(--body);padding:.6rem .55rem;min-height:44px;white-space:nowrap;cursor:pointer}
+.tab[aria-current="page"]{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+.linkbtn{appearance:none;background:none;border:0;color:var(--muted);font:500 .82rem var(--body);text-decoration:underline;cursor:pointer;padding:.4rem 0;min-height:32px}
+
+main{padding-block:1.4rem 0;display:grid;gap:2rem}
+section.block{border-top:1px solid var(--line);padding-top:1.4rem;display:grid;gap:.9rem}
+section.block:first-child{border-top:0;padding-top:0}
+
+/* buttons and form bits */
+.btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:.5rem;min-height:46px;padding:.65rem 1.1rem;border-radius:10px;border:1.5px solid var(--accent);background:var(--accent);color:var(--accent-ink);font:600 .98rem var(--body);cursor:pointer;text-decoration:none}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.row{display:flex;flex-wrap:wrap;gap:.6rem}
+.field{display:grid;gap:.45rem}
+.field>label,.field>.lab,legend{font-weight:600;font-size:.95rem;padding:0}
+fieldset{border:0;margin:0;padding:0;min-width:0}
+input[type=date],textarea{font:inherit;color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:.65rem .75rem;min-height:46px;width:100%}
+textarea{min-height:84px;resize:vertical}
+select{font:inherit;color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:.65rem .6rem;min-height:46px;width:100%;min-width:0}
+.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.5rem}
+.choice{position:relative}
+.choice input{position:absolute;opacity:0;inset:0;width:100%;height:100%;margin:0;cursor:pointer}
+.choice span{display:flex;align-items:center;min-height:46px;padding:.55rem .8rem;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);font-size:.93rem;font-weight:500}
+.choice input:checked+span{border-color:var(--accent);background:var(--accent-soft);font-weight:600}
+.choice input:focus-visible+span{outline:3px solid var(--accent);outline-offset:2px}
+input[type=range]{width:100%;accent-color:var(--accent);min-height:32px}
+.check{display:flex;gap:.6rem;align-items:flex-start;font-size:.95rem}
+.check input{margin-top:.3rem;width:18px;height:18px;accent-color:var(--accent)}
+
+/* verdict */
+.verdict{border-radius:16px;padding:1.3rem 1.2rem 1.2rem;display:grid;gap:.8rem;background:var(--st-soft);color:var(--ink);border:1px solid var(--line)}
+.verdict.t-ok{--st:var(--ok);--st-soft:var(--ok-soft)} .verdict.t-warn{--st:var(--warn);--st-soft:var(--warn-soft)}
+.verdict.t-stop{--st:var(--stop);--st-soft:var(--stop-soft)} .verdict.t-idle{--st:var(--idle);--st-soft:var(--idle-soft)}
+.pill{justify-self:start;font-size:.76rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--st);border:1.5px solid var(--st);border-radius:999px;padding:.18rem .65rem}
+.why{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:.4rem}
+.why li{font-size:.82rem;padding:.2rem .6rem;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--muted)}
+.why li.alert{color:var(--stop);border-color:var(--stop)}
+
+/* chart */
+.chart{width:100%;height:auto;display:block;overflow:visible}
+.chart text{font:500 12.5px var(--body);fill:var(--muted)}
+.chart .strong{fill:var(--ink)} .chart .warn{fill:var(--warn)}
+.chart .halo{paint-order:stroke;stroke:var(--band);stroke-width:4px;stroke-linejoin:round}
+.legend{display:flex;flex-wrap:wrap;gap:.4rem 1rem;font-size:.82rem;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:.35rem;vertical-align:-1px}
+
+/* milestones */
+.ms{list-style:none;margin:0;padding:0;display:grid}
+.ms li{display:grid;grid-template-columns:28px 1fr;gap:.2rem .8rem;padding:.8rem 0;border-top:1px solid var(--line)}
+.ms li:first-child{border-top:0}
+.dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--line);margin-top:.15rem;display:grid;place-items:center;font-size:.7rem;font-weight:700;background:var(--surface)}
+.dot.done{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.dot.due{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
+.dot.missed{border-style:dashed}
+.ms .t{font-weight:600} .ms .s{font-size:.88rem;color:var(--muted)}
+.ms a{color:var(--accent);font-size:.88rem;font-weight:500}
+
+/* photo + compare */
+.drop{display:grid;place-items:center;gap:.4rem;min-height:210px;border:2px dashed var(--line);border-radius:14px;background:var(--surface);text-align:center;padding:1rem;cursor:pointer;position:relative;overflow:hidden}
+.drop:focus-within{outline:3px solid var(--accent);outline-offset:2px}
+.drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.drop img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.drop .hint{font-weight:600}
+.ref{display:flex;gap:.8rem;align-items:center;font-size:.88rem;color:var(--muted)}
+.ref img{width:84px;height:63px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+details{border-top:1px solid var(--line);padding:.7rem 0}
+details:last-child{border-bottom:1px solid var(--line)}
+summary{cursor:pointer;font-weight:600;min-height:32px;display:flex;align-items:center}
+details p,details ul{margin-top:.5rem;color:var(--muted);font-size:.94rem}
+details ul{padding-left:1.1rem;display:grid;gap:.3rem}
+.ba{position:relative;aspect-ratio:4/3;max-width:100%;border-radius:14px;overflow:hidden;background:var(--surface2);border:1px solid var(--line);touch-action:pan-y}
+.ba img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;user-select:none;-webkit-user-drag:none}
+.ba .after{clip-path:inset(0 0 0 var(--p,50%))}
+.ba .bar{position:absolute;top:0;bottom:0;left:var(--p,50%);width:3px;background:var(--surface);box-shadow:0 0 0 1px rgba(0,0,0,.25);transform:translateX(-1.5px)}
+.ba .lbl{position:absolute;top:.6rem;font-size:.74rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:.15rem .5rem;border-radius:999px;background:rgba(10,20,18,.72);color:#fff}
+.ba .l1{left:.6rem} .ba .l2{right:.6rem}
+.strip{display:grid;grid-auto-flow:column;grid-auto-columns:116px;gap:.6rem;overflow-x:auto;padding-bottom:.4rem}
+.strip figure{margin:0;display:grid;gap:.3rem}
+.strip img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
+.strip figcaption{font-size:.78rem;color:var(--muted);line-height:1.3}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}
+
+/* onboarding */
+.hero{display:grid;gap:.8rem}
+.hero p.lead{font-size:1.05rem;color:var(--muted);max-width:52ch}
+.evidence{border-left:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:1rem;display:grid;gap:.5rem;font-size:.94rem}
+.notice{font-size:.84rem;color:var(--muted);background:var(--surface2);border-radius:10px;padding:.7rem .85rem}
+.demo{background:var(--warn-soft);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:.6rem .85rem;font-size:.86rem}
+
+/* brand view */
+.bars{display:grid;gap:.55rem}
+.bar-row{display:grid;grid-template-columns:64px 1fr;gap:.7rem;align-items:center;font-size:.86rem}
+.stack{display:flex;height:22px;border-radius:6px;overflow:hidden;background:var(--surface2)}
+.stack b{display:block;height:100%}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.86rem;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:.45rem .5rem;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-weight:600;color:var(--muted)}
+.trig{display:grid;gap:.25rem;padding:.9rem 0;border-top:1px solid var(--line)}
+.trig:first-of-type{border-top:0}
+.trig.on{background:var(--accent-soft);margin-inline:-.7rem;padding-inline:.7rem;border-radius:10px;border-top-color:transparent}
+.trig .when{font-weight:600}
+.trig .you{font-size:.78rem;font-weight:700;color:var(--accent);letter-spacing:.05em;text-transform:uppercase}
+
+.toast{position:fixed;left:50%;bottom:calc(1.2rem + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:.6rem 1rem;border-radius:10px;font-size:.9rem;z-index:20;max-width:calc(100vw - 32px)}
+footer{margin-top:2.5rem;font-size:.8rem;color:var(--muted);border-top:1px solid var(--line);padding-top:1rem}
+@media (prefers-reduced-motion:no-preference){.verdict{animation:rise .35s ease-out}@keyframes rise{from{opacity:.4;transform:translateY(6px)}to{opacity:1;transform:none}}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brandrow">
+      <span class="logo">GlowCheck</span>
+      <span class="tag">A progress companion for the underarm roll-on</span>
+    </div>
+    <nav class="tabs" id="tabs" aria-label="Sections" hidden></nav>
+  </header>
+  <main id="main"></main>
+  <footer>
+    Concept prototype built for the Mosaic Fellowship, based on five Be Bodywise customer conversations. It is not an official Be Bodywise product and gives general guidance, not medical advice. Photos you add stay in this browser and are never uploaded.
+  </footer>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(function(){
+"use strict";
+var KEY="glowcheck-v1";
+var MS=[0,2,4,8,12,16];
+var RATE={lighter:{t:"Lighter",v:2},little:{t:"A little lighter",v:1},same:{t:"About the same",v:0},unsure:{t:"Hard to tell",v:null}};
+var VIEWS=[["journey","Journey"],["checkin","Check in"],["compare","Compare"],["care","Care"],["brand","Brand"]];
+
+/* ---------- state ---------- */
+var S=load();
+var view="journey";
+var draft=freshDraft();
+function load(){try{var r=localStorage.getItem(KEY);return r?JSON.parse(r):{started:false}}catch(e){return {started:false}}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));return true}catch(e){toast("Could not save on this device. Progress will be lost if you close the page.");return false}}
+function freshDraft(){return {photo:null,rating:null,days:12,irr:"none",shaved:false,note:""}}
+
+/* ---------- dates ---------- */
+function z(n){return String(n).padStart(2,"0")}
+function iso(d){return d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate())}
+function parse(s){var p=s.split("-").map(Number);return new Date(p[0],p[1]-1,p[2])}
+function today(){var d=new Date();return new Date(d.getFullYear(),d.getMonth(),d.getDate())}
+function addDays(d,n){var x=new Date(d);x.setDate(x.getDate()+n);return x}
+function diff(a,b){return Math.round((a-b)/86400000)}
+function fmt(d){return d.toLocaleDateString("en-IN",{day:"numeric",month:"short"})}
+function ymd(d){return d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function $(s,r){return (r||document).querySelector(s)}
+
+/* ---------- journey helpers ---------- */
+function start(){return parse(S.start)}
+function msDate(m){return addDays(start(),m*7)}
+function msDone(m){return S.checkins.some(function(c){return c.ms===m})}
+function weekOf(date){return diff(date,start())/7}
+function sorted(){return S.checkins.slice().sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0})}
+function nextMs(){
+  if(!msDone(0))return 0;
+  var open=MS.filter(function(m){return !msDone(m)});
+  if(!open.length)return 100+S.checkins.length;
+  var reached=open.filter(function(m){return m>0&&msDate(m)<=today()});
+  return reached.length?reached[reached.length-1]:open[0];
+}
+function msLabel(m){return m===0?"Baseline photo":MS.indexOf(m)>-1?"Week "+m+" check-in":"Extra check-in"}
+function ciLabel(c){return c.ms===0?"Baseline":"Week "+Math.floor(weekOf(parse(c.date)))}
+
+/* ---------- verdict (plain rules, shown to the user as reasons) ---------- */
+var RANGE="Customers we spoke to saw a first change anywhere from about 4 to 20 weeks, and some saw none.";
+function verdict(){
+  var cs=sorted(),base=cs.filter(function(c){return c.ms===0})[0],rest=cs.filter(function(c){return c.ms!==0});
+  var days=diff(today(),start()),wk=Math.max(0,Math.floor(days/7));
+  if(!base)return {tone:"idle",pill:"Step 1",head:"Take your baseline photo",body:"Everything after this is compared with it. Pick a spot with steady daylight and use the same one every time.",why:[],cta:{label:"Take baseline photo",go:"checkin"}};
+  if(!rest.length){
+    if(wk<2)return {tone:"idle",pill:"Too early",head:"Day "+Math.max(days,0)+": nothing to see yet",body:"Underarm skin changes slowly, and it is easy to miss day to day. Use the roll-on as the pack directs. Your first check-in is on "+fmt(msDate(2))+".",why:["Baseline saved"],cta:{label:"Add check-in to calendar",href:gcal(2)}};
+    return {tone:"warn",pill:"Check-in due",head:"Your first check-in is ready",body:"Take a photo in the same light as your baseline and tell us how it looks. It takes a minute.",why:["Week "+wk+" since you started"],cta:{label:"Check in now",go:"checkin"}};
+  }
+  var last=rest[rest.length-1],cw=Math.floor(weekOf(parse(last.date))),r=RATE[last.rating]?RATE[last.rating].v:null;
+  var meanUse=rest.reduce(function(a,c){return a+c.days},0)/rest.length/14;
+  var why=["Week "+cw+" check-in","Used "+last.days+" of 14 days",RATE[last.rating]?RATE[last.rating].t:"No rating"];
+  if(last.irr==="mild")why.push("Mild stinging reported");
+  var stale=diff(today(),parse(last.date))>21;
+  var v;
+  if(last.irr==="painful"){
+    v={tone:"stop",pill:"Pause",head:"Pause the roll-on and look after your skin",body:"You reported stinging, burning or a rash. Stop using it until your skin settles. If it does not, talk to a doctor.",cta:{label:"Read the care guide",go:"care"}};
+    why[why.length-1]="Painful reaction reported";
+  }else if(last.days/14<0.6){
+    v={tone:"warn",pill:"Use it regularly",head:"Use it regularly before judging",body:"You used it on "+last.days+" of the last 14 days. Results depend on regular use, so a result now says little. Try the next two weeks daily.",cta:{label:"See photo tips",go:"care"}};
+  }else if(r!==null&&r>=1){
+    v={tone:"ok",pill:"On track",head:"You are seeing a change",body:"Skin tone shifts slowly, so keep going and keep checking every four weeks. Your photos show it better than the mirror does.",cta:{label:"Compare your photos",go:"compare"}};
+  }else if(cw<8){
+    v={tone:"idle",pill:"Too early",head:"Too early to call",body:"Nothing visible at week "+cw+" is common. "+RANGE+" Next check-in: "+fmt(nextDue())+".",cta:{label:"Add next check-in to calendar",href:gcal(nextDueMs())}};
+  }else if(cw<12){
+    v={tone:"warn",pill:"Slow so far",head:"Slow so far",body:"Keep using it daily until week 12. At that point we will tell you straight whether it is worth continuing. Next check-in: "+fmt(nextDue())+".",cta:{label:"Add next check-in to calendar",href:gcal(nextDueMs())}};
+  }else if(meanUse>=0.8){
+    v={tone:"warn",pill:"Talk to a doctor",head:"No clear change after "+cw+" weeks of regular use",body:"That is useful to know. A doctor can say whether another product or approach suits you better, and your photo record makes that conversation easier.",cta:{label:"Open your photo record",go:"compare"},cta2:{label:"Read the care guide",go:"care"}};
+    why.push("Regular use all along");
+  }else{
+    v={tone:"warn",pill:"Mixed use",head:"Mixed use so far",body:"You used it on some days but not most. Try four weeks of daily use, then check in again before deciding.",cta:{label:"See photo tips",go:"care"}};
+  }
+  if(stale){why.push("Last check-in "+Math.floor(diff(today(),parse(last.date))/7)+" weeks ago");v.cta2=v.cta2||{label:"Check in now",go:"checkin"}}
+  v.why=why;v.k=v.pill;return v;
+}
+function nextDueMs(){var open=MS.filter(function(m){return m>0&&!msDone(m)});return open.length?open[0]:16}
+function nextDue(){return msDate(nextDueMs())}
+function gcal(m){
+  var d=msDate(m||2);
+  return "https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent("Week "+m+" check-in: underarm roll-on")+"&details="+encodeURIComponent("Take a photo in the same light as your baseline and log how it looks.")+"&dates="+ymd(d)+"/"+ymd(addDays(d,1));
+}
+
+/* ---------- images ---------- */
+function shrink(file,cb){
+  var fr=new FileReader();
+  fr.onload=function(){var im=new Image();im.onload=function(){
+    var max=720,s=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement("canvas");
+    c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext("2d").drawImage(im,0,0,c.width,c.height);
+    cb(c.toDataURL("image/jpeg",0.72));};im.onerror=function(){toast("That file could not be read as an image.")};im.src=fr.result};
+  fr.readAsDataURL(file);
+}
+function rng(seed){var s=seed>>>0;return function(){s=(Math.imul(s^(s>>>15),2246822507)+1013904223)>>>0;return s/4294967296}}
+function swatch(L,seed){
+  var c=document.createElement("canvas");c.width=480;c.height=360;var g=c.getContext("2d");
+  g.fillStyle="hsl(22 36% "+L+"%)";g.fillRect(0,0,480,360);
+  var gr=g.createRadialGradient(150,110,10,240,180,320);gr.addColorStop(0,"rgba(255,240,225,.28)");gr.addColorStop(1,"rgba(40,20,10,.30)");g.fillStyle=gr;g.fillRect(0,0,480,360);
+  var r=rng(seed);
+  for(var i=0;i<1500;i++){g.fillStyle="rgba("+(r()>.5?"255,235,220":"60,30,20")+","+(r()*.07).toFixed(3)+")";g.beginPath();g.arc(r()*480,r()*360,r()*2.2+.3,0,6.3);g.fill()}
+  g.strokeStyle="rgba(50,25,15,.22)";g.lineWidth=18;g.lineCap="round";g.beginPath();g.moveTo(-10,300);g.bezierCurveTo(140,230,330,240,490,170);g.stroke();
+  return c.toDataURL("image/jpeg",0.7);
+}
+
+/* ---------- demo journeys ---------- */
+function makeDemo(kind){
+  var st=addDays(today(),-(12*7+2)),track=kind==="track";
+  var L=track?[40,40.5,42,45,48]:[40,40,40.5,40,40.5];
+  var rate=track?[null,"same","unsure","little","little"]:[null,"same","same","unsure","same"];
+  var use=track?[0,13,12,14,13]:[0,14,13,14,14];
+  var notes=track?["","","Hard to tell, light was different.","Underarms look a little more even than the baseline.","Still improving slowly."]:["","","","Window light was dimmer today.","Looks the same as the baseline in the same window light."];
+  var ms=[0,2,4,8,12];
+  S={started:true,demo:kind,product:"Underarm roll-on (brightening)",start:iso(st),expect:8,checkins:ms.map(function(m,i){
+    return {id:"d"+i,ms:m,date:iso(addDays(st,m*7)),photo:swatch(L[i],11+i*7),rating:rate[i],days:use[i],irr:"none",shaved:false,note:notes[i]}})};
+  save();
+}
+
+/* ---------- chart ---------- */
+function chart(){
+  var W=400,H=316,Lm=60,Rm=10,T=26,B=58,maxW=20,PT=T+38;
+  function x(w){return Lm+Math.min(Math.max(w,0),maxW)/maxW*(W-Lm-Rm)}
+  function y(v){return PT+(2-v)/2*(H-B-PT)}
+  var o='<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Chart of how your skin looked at each check-in, against the range of weeks customers reported a first change">';
+  o+='<rect x="'+x(4)+'" y="'+T+'" width="'+(x(20)-x(4))+'" height="'+(H-B-T)+'" fill="var(--band)"/>';
+  o+='<text class="halo" x="'+(x(4)+8)+'" y="'+(T+16)+'">Customers saw a first change</text><text class="halo" x="'+(x(4)+8)+'" y="'+(T+31)+'">between 4 and 20 weeks</text>';
+  [[2,"Lighter"],[1,"A little"],[0,"Same"]].forEach(function(r){
+    o+='<line x1="'+Lm+'" x2="'+(W-Rm)+'" y1="'+y(r[0])+'" y2="'+y(r[0])+'" stroke="var(--line)" stroke-dasharray="3 4"/><text x="'+(Lm-10)+'" y="'+(y(r[0])+4)+'" text-anchor="end">'+r[1]+'</text>'});
+  o+='<line x1="'+Lm+'" x2="'+(W-Rm)+'" y1="'+(H-B)+'" y2="'+(H-B)+'" stroke="var(--muted)"/>';
+  [0,4,8,12,16,20].forEach(function(w){o+='<line x1="'+x(w)+'" x2="'+x(w)+'" y1="'+(H-B)+'" y2="'+(H-B+5)+'" stroke="var(--muted)"/><text x="'+x(w)+'" y="'+(H-B+19)+'" text-anchor="middle">'+w+'</text>'});
+  o+='<text x="'+((Lm+W-Rm)/2)+'" y="'+(H-4)+'" text-anchor="middle">Weeks since your baseline photo</text>';
+  if(typeof S.expect==="number"){var ex=x(S.expect);o+='<line x1="'+ex+'" x2="'+ex+'" y1="'+(T-6)+'" y2="'+(H-B)+'" stroke="var(--warn)" stroke-width="2" stroke-dasharray="5 4"/><text class="warn" x="'+ex+'" y="'+(T-10)+'" text-anchor="'+(ex>W-80?"end":"middle")+'" style="font-weight:600">You expected</text>'}
+  var tw=weekOf(today()),tx=x(tw);
+  if(tw>=0){o+='<line x1="'+tx+'" x2="'+tx+'" y1="'+T+'" y2="'+(H-B)+'" stroke="var(--ink)" stroke-width="1.5"/>';}
+  var pts=sorted().filter(function(c){return c.ms===0||(RATE[c.rating]&&RATE[c.rating].v!==null)}).map(function(c){return {w:weekOf(parse(c.date)),v:c.ms===0?0:RATE[c.rating].v}});
+  if(pts.length>1)o+='<polyline fill="none" stroke="var(--accent)" stroke-width="2.5" points="'+pts.map(function(p){return x(p.w)+","+y(p.v)}).join(" ")+'"/>';
+  pts.forEach(function(p){o+='<circle cx="'+x(p.w)+'" cy="'+y(p.v)+'" r="6.5" fill="var(--accent)" stroke="var(--bg)" stroke-width="2.5"/>'});
+  if(tw>=0)o+='<text class="strong" x="'+tx+'" y="'+(H-B+36)+'" text-anchor="'+(tx>W-40?"end":"middle")+'" style="font-weight:700">Today</text>';
+  return o+"</svg>";
+}
+
+/* ---------- views ---------- */
+var main=$("#main"),tabs=$("#tabs");
+function render(){
+  tabs.hidden=!S.started;
+  if(!S.started){main.innerHTML=onboarding();bindOnboarding();return}
+  tabs.innerHTML=VIEWS.map(function(v){return '<button class="tab" data-go="'+v[0]+'"'+(v[0]===view?' aria-current="page"':"")+'>'+v[1]+(v[0]==="checkin"&&!msDone(0)?" •":"")+'</button>'}).join("");
+  var demo=S.demo?'<div class="demo"><b>Demo journey.</b> The photos are generated colour patches, not real skin. <button class="linkbtn" data-act="reset" style="color:inherit">Start my own</button></div>':"";
+  var html={journey:renderJourney,checkin:renderCheckin,compare:renderCompare,care:renderCare,brand:renderBrand}[view]();
+  main.innerHTML=demo+html;
+  if(view==="checkin")bindCheckin();
+  if(view==="compare")bindCompare();
+}
+function go(v){view=v;try{if(location.hash!=="#"+v)location.hash="#"+v}catch(e){}render();window.scrollTo(0,0)}
+
+function onboarding(){
+  return '<section class="block hero"><span class="eyebrow">For customers of the underarm brightening roll-on</span>'+
+  '<h1>Find out if it is working, week by week</h1>'+
+  '<p class="lead">Underarm skin changes slowly and the change is easy to miss in a mirror. This keeps a photo record, checks in at the right moments and gives you a straight answer.</p>'+
+  '<div class="row"><button class="btn" data-act="demo-track">See a demo: change visible</button><button class="btn ghost" data-act="demo-slow">See a demo: no change</button></div></section>'+
+  '<section class="block"><h2>Start your own journey</h2>'+
+  '<fieldset class="field"><legend>Where are you with the roll-on?</legend><div class="choices">'+
+  '<label class="choice"><input type="radio" name="using" value="no" id="usingNo" checked><span>About to start</span></label><label class="choice"><input type="radio" name="using" value="yes" id="usingYes"><span>Already using it</span></label></div>'+
+  '<p class="small muted" id="usingNote"></p></fieldset>'+
+  '<fieldset class="field"><legend>When do you expect to see a difference?</legend><div class="choices">'+
+  [["2","In 2 weeks"],["4","In 4 weeks"],["8","In 8 weeks"],["12","In 12 weeks"],["none","No idea"]].map(function(c,i){return '<label class="choice"><input type="radio" name="expect" value="'+c[0]+'" id="ex'+c[0]+'"'+(i===2?" checked":"")+'><span>'+c[1]+'</span></label>'}).join("")+'</div></fieldset>'+
+  '<div class="evidence" id="evidence"></div>'+
+  '<button class="btn" data-act="begin">Start my journey</button>'+
+  '<p class="notice">Photos stay in this browser on this device. Nothing is uploaded or shared.</p></section>';
+}
+function evidenceText(v){
+  var base="<b>What five customers told us about this roll-on:</b> one saw a clear change after about 4 weeks, one a faint change after 4 to 5 months, and three saw none. Five is a small sample.";
+  var line={"2":"Two weeks is shorter than any customer needed. We check in at week 2 anyway, and a blank result then is normal.","4":"Four weeks matches the fastest result we heard about. Not everyone sees it that early.","8":"Eight weeks is inside the range customers reported, though several saw nothing by then.","12":"Twelve weeks is a fair window to judge. We check in at weeks 2, 4, 8 and 12.","none":"That is fine. We will show you what to expect as you go."}[v];
+  return "<p>"+base+"</p><p>"+line+"</p>";
+}
+function bindOnboarding(){
+  var ev=$("#evidence");function up(){var r=$("input[name=expect]:checked");ev.innerHTML=evidenceText(r?r.value:"none")}
+  up();main.querySelectorAll("input[name=expect]").forEach(function(i){i.addEventListener("change",up)});
+  var un=$("#usingNote");function upu(){var r=$("input[name=using]:checked");un.textContent=r&&r.value==="yes"?"Today’s photo becomes your baseline, and we measure change from here. Your earlier use is not counted.":"Take your baseline photo before your first application, so every later photo has something to be compared with."}
+  upu();main.querySelectorAll("input[name=using]").forEach(function(i){i.addEventListener("change",upu)});
+}
+
+function renderJourney(){
+  var v=verdict();
+  var h='<section class="block"><div class="verdict t-'+v.tone+'"><span class="pill">'+esc(v.pill)+'</span><h1>'+esc(v.head)+'</h1><p>'+esc(v.body)+'</p>'+
+    (v.why.length?'<ul class="why" aria-label="Why you are seeing this">'+v.why.map(function(w,i){return '<li'+(/Painful/.test(w)?' class="alert"':'')+'>'+esc(w)+'</li>'}).join("")+'</ul>':"")+
+    '<div class="row">'+cta(v.cta,true)+(v.cta2?cta(v.cta2,false):"")+'</div></div></section>';
+  h+='<section class="block"><h2>Where you are against what to expect</h2>'+chart()+
+    '<div class="legend"><span><i style="background:var(--accent)"></i>Your check-ins</span><span><i style="background:var(--band);border:1px solid var(--line)"></i>Range customers reported</span><span><i style="background:var(--warn)"></i>What you expected</span></div>'+
+    '<p class="cap">Check-ins you marked “hard to tell” are not plotted. The customer range comes from five conversations and is a starting point, not a promise.'+(S.already?" You used the roll-on before your baseline, so treat the range as a rough guide.":"")+'</p></section>';
+  var due=nextMs();
+  h+='<section class="block"><h2>Your check-ins</h2><ol class="ms">'+MS.map(function(m){
+    var d=msDate(m),done=S.checkins.filter(function(c){return c.ms===m})[0],isDue=!done&&m===(due>=100?-1:due)&&(m===0||d<=today());
+    var past=!done&&d<today()&&MS.some(function(n){return n>m&&msDone(n)});
+    var cls=done?"done":isDue?"due":past?"missed":"";
+    var st=done?"Done "+fmt(parse(done.date))+(done.rating&&RATE[done.rating]?" · "+RATE[done.rating].t:""):isDue?"Ready now":past?"Skipped":"Planned for "+fmt(d);
+    return '<li><span class="dot '+cls+'" aria-hidden="true">'+(done?"✓":"")+'</span><div><div class="t">'+msLabel(m)+'</div><div class="s">'+esc(st)+'</div>'+
+      (!done&&m>0&&!past?'<a href="'+gcal(m)+'" target="_blank" rel="noopener">Add to Google Calendar</a>':"")+'</div></li>'}).join("")+'</ol></section>';
+  return h;
+}
+function cta(c,primary){
+  if(!c)return "";
+  if(c.href)return '<a class="btn'+(primary?"":" ghost")+'" href="'+c.href+'" target="_blank" rel="noopener">'+esc(c.label)+'</a>';
+  return '<button class="btn'+(primary?"":" ghost")+'" data-go="'+c.go+'">'+esc(c.label)+'</button>';
+}
+
+function renderCheckin(){
+  var m=nextMs(),base=sorted().filter(function(c){return c.ms===0})[0],isBase=m===0;
+  var early=m>0&&m<100&&msDate(m)>today();
+  var label=m>=100?"Extra check-in":msLabel(m);
+  return '<section class="block"><span class="eyebrow">'+(early?"Early check-in":"Check in")+'</span><h1>'+label+'</h1>'+
+  (isBase?'<p class="muted">This photo is the starting point for everything you compare later.</p>':'<p class="muted">Same spot, same light, same arm position as your baseline.</p>')+
+  '<div class="field"><span class="lab" id="photoLab">Photo</span><label class="drop" id="drop" aria-labelledby="photoLab"><span class="hint" id="dropHint">Tap to add a photo</span><span class="small muted" id="dropSub">From your camera or gallery. It stays on this device.</span><input type="file" accept="image/*" id="photoIn"></label></div>'+
+  (base&&!isBase?'<div class="ref"><img src="'+base.photo+'" alt="Your baseline photo"><span>Your baseline. Try to match this framing.</span></div>':"")+
+  '<details><summary>Photo tips</summary><ul><li>Use the same spot every time, ideally by a window in daylight.</li><li>Turn the flash off and skip filters.</li><li>Raise your arm to the same height and keep the camera at the same distance.</li><li>Clean, dry skin, at roughly the same time of day.</li></ul></details>'+
+  (isBase?"":'<fieldset class="field"><legend>Compared with your baseline, the skin looks</legend><div class="choices">'+
+    ["lighter","little","same","unsure"].map(function(k){return '<label class="choice"><input type="radio" name="rating" value="'+k+'" id="r_'+k+'"><span>'+RATE[k].t+'</span></label>'}).join("")+'</div></fieldset>'+
+    '<div class="field"><label for="daysIn">On how many of the last 14 days did you use it? <b id="daysOut">12</b></label><input type="range" id="daysIn" min="0" max="14" step="1" value="12"></div>'+
+    '<fieldset class="field"><legend>Any stinging, burning or rash?</legend><div class="choices">'+[["none","None"],["mild","Mild stinging"],["painful","Painful or a rash"]].map(function(k){return '<label class="choice"><input type="radio" name="irr" value="'+k[0]+'" id="i_'+k[0]+'"'+(k[0]==="none"?" checked":"")+'><span>'+k[1]+'</span></label>'}).join("")+'</div></fieldset>'+
+    '<label class="check" for="shavedIn"><input type="checkbox" id="shavedIn"><span>I applied it right after shaving</span></label><p class="notice" id="shaveNote" hidden>One customer’s skin tingled and burned twice when she applied it straight after shaving. Give your skin time to settle, and follow the directions on the pack.</p>'+
+    '<div class="field"><label for="noteIn">Anything else? (optional)</label><textarea id="noteIn" maxlength="300"></textarea></div>')+
+  '<div class="row"><button class="btn" id="saveBtn" disabled>Save check-in</button><button class="btn ghost" data-go="journey">Cancel</button></div></section>';
+}
+function bindCheckin(){
+  var m=nextMs(),isBase=m===0,btn=$("#saveBtn");
+  draft=freshDraft();
+  function ready(){btn.disabled=!(draft.photo&&(isBase||draft.rating))}
+  $("#photoIn").addEventListener("change",function(e){var f=e.target.files[0];if(!f)return;
+    shrink(f,function(url){draft.photo=url;var d=$("#drop");var old=d.querySelector("img");if(old)old.remove();var im=new Image();im.alt="Your new photo";im.src=url;d.appendChild(im);$("#dropHint").hidden=true;$("#dropSub").hidden=true;ready()})});
+  if(isBase)return ready();
+  main.querySelectorAll("input[name=rating]").forEach(function(i){i.addEventListener("change",function(){draft.rating=i.value;ready()})});
+  main.querySelectorAll("input[name=irr]").forEach(function(i){i.addEventListener("change",function(){draft.irr=i.value})});
+  $("#daysIn").addEventListener("input",function(e){draft.days=+e.target.value;$("#daysOut").textContent=e.target.value});
+  $("#shavedIn").addEventListener("change",function(e){draft.shaved=e.target.checked;$("#shaveNote").hidden=!e.target.checked});
+  $("#noteIn").addEventListener("input",function(e){draft.note=e.target.value});
+  btn.addEventListener("click",saveCheckin);
+  ready();
+}
+function saveCheckin(){
+  var m=nextMs();
+  if(m===0)S.start=iso(today());
+  S.checkins.push({id:"c"+Date.now(),ms:m,date:iso(today()),photo:draft.photo,rating:m===0?null:draft.rating,days:m===0?0:draft.days,irr:draft.irr,shaved:draft.shaved,note:draft.note});
+  if(save())toast(m===0?"Baseline saved":"Check-in saved");
+  draft=freshDraft();go("journey");
+}
+/* baseline has its own button handler because no form controls render for it */
+main.addEventListener("click",function(e){
+  var b=e.target.closest("#saveBtn");
+  if(b&&nextMs()===0&&!b.disabled)saveCheckin();
+});
+
+var cmp={a:null,b:null};
+function renderCompare(){
+  var cs=sorted();
+  if(cs.length<2)return '<section class="block"><h1>Compare your photos</h1><p class="muted">You need at least two photos. Add your baseline and a first check-in, and this page will put them side by side.</p><div class="row"><button class="btn" data-go="checkin">Add a photo</button></div></section>';
+  if(!cmp.a||!cs.some(function(c){return c.id===cmp.a}))cmp.a=cs[0].id;
+  if(!cmp.b||!cs.some(function(c){return c.id===cmp.b}))cmp.b=cs[cs.length-1].id;
+  var opts=function(sel){return cs.map(function(c){return '<option value="'+c.id+'"'+(c.id===sel?" selected":"")+'>'+ciLabel(c)+" · "+fmt(parse(c.date))+'</option>'}).join("")};
+  var A=cs.filter(function(c){return c.id===cmp.a})[0],B=cs.filter(function(c){return c.id===cmp.b})[0];
+  return '<section class="block"><h1>Compare your photos</h1>'+
+  '<div class="two"><div class="field"><label for="selA">From</label><select id="selA" class="sel">'+opts(cmp.a)+'</select></div><div class="field"><label for="selB">To</label><select id="selB" class="sel">'+opts(cmp.b)+'</select></div></div>'+
+  '<div class="ba" id="ba" style="--p:50%"><img src="'+A.photo+'" alt="Photo from '+ciLabel(A)+'"><img class="after" src="'+B.photo+'" alt="Photo from '+ciLabel(B)+'"><span class="bar"></span><span class="lbl l1">'+ciLabel(A)+'</span><span class="lbl l2">'+ciLabel(B)+'</span></div>'+
+  '<div class="field"><label for="slide" class="small muted">Drag to reveal</label><input type="range" id="slide" min="0" max="100" value="50"></div>'+
+  '<p class="cap">Lighting changes how skin looks. If two photos were taken in different light, trust your own rating more than the picture.</p></section>'+
+  '<section class="block"><h2>All photos</h2><div class="strip">'+cs.map(function(c){return '<figure><img src="'+c.photo+'" alt="'+ciLabel(c)+' photo"><figcaption><b>'+ciLabel(c)+'</b><br>'+fmt(parse(c.date))+(c.rating&&RATE[c.rating]?"<br>"+RATE[c.rating].t:"")+'</figcaption></figure>'}).join("")+'</div>'+
+  (cs.some(function(c){return c.note})?'<ul class="muted small" style="margin:0;padding-left:1.1rem;display:grid;gap:.3rem">'+cs.filter(function(c){return c.note}).map(function(c){return '<li><b>'+ciLabel(c)+':</b> '+esc(c.note)+'</li>'}).join("")+'</ul>':"")+'</section>';
+}
+function bindCompare(){
+  var ba=$("#ba");if(!ba)return;
+  var sl=$("#slide");sl.addEventListener("input",function(){ba.style.setProperty("--p",sl.value+"%")});
+  $("#selA").addEventListener("change",function(e){cmp.a=e.target.value;render()});
+  $("#selB").addEventListener("change",function(e){cmp.b=e.target.value;render()});
+}
+
+function renderCare(){
+  return '<section class="block"><h1>Care and photo guide</h1><p class="muted">General guidance gathered from what customers told us. It is not medical advice, and the directions on the pack come first.</p></section>'+
+  '<section class="block"><h2>Using it well</h2>'+
+  '<details open><summary>Try a small patch first</summary><p>If your skin is sensitive, test a small area before regular use and watch for stinging over the next day.</p></details>'+
+  '<details open><summary>Give skin time after shaving</summary><p>One customer’s skin tingled and burned twice when she applied the roll-on straight after shaving, and nothing on the pack warned her. Let skin settle first and check the pack for directions.</p></details>'+
+  '<details><summary>What counts as regular use?</summary><p>Use it as the pack directs. The check-in asks how many of the last 14 days you used it, because a result after patchy use says little about the product.</p></details></section>'+
+  '<section class="block"><h2>Taking photos you can compare</h2><details open><summary>Five habits</summary><ul><li>Same spot, by a window in daylight.</li><li>No flash, no filters.</li><li>Same arm height and camera distance each time.</li><li>Clean, dry skin.</li><li>Roughly the same time of day.</li></ul></details></section>'+
+  '<section class="block"><h2>Common questions</h2>'+
+  '<details><summary>Why can I not see it in the mirror?</summary><p>Daily changes are tiny, and you look at the same skin every day. Photos taken two to four weeks apart show changes your eye skips over.</p></details>'+
+  '<details><summary>Why do two photos look different when nothing changed?</summary><p>Light. A dimmer room or a different time of day shifts tone more than a few weeks of use. That is why the app also asks how you think it looks.</p></details>'+
+  '<details><summary>How long should I keep going?</summary><p>Customers we spoke to saw a first change from about 4 to 20 weeks, and some saw none. We suggest judging at 12 weeks of regular use.</p></details></section>'+
+  '<section class="block"><h2>See a doctor if</h2><ul class="muted" style="margin:0;padding-left:1.1rem;display:grid;gap:.3rem"><li>You get burning, a rash, swelling or broken skin.</li><li>You see no clear change after 12 weeks of regular use.</li><li>You are unsure what you are seeing.</li></ul></section>';
+}
+
+var SIM=[["Wk 2",[3,9,60,28]],["Wk 4",[6,17,50,27]],["Wk 8",[11,26,43,20]],["Wk 12",[16,30,38,16]]];
+function renderBrand(){
+  var v=S.started?verdict():null,k=v?v.pill:"";
+  var T=[
+    {id:"due",pill:["Step 1","Check-in due","Too early"],when:"Check-in is due or missed",send:"A reminder with the customer’s own baseline photo and what to expect this week.",learn:"Which customers drift away before their first check-in."},
+    {id:"use",pill:["Use it regularly"],when:"Fewer than 9 of 14 days used",send:"Routine tips and a refill reminder.",learn:"Whether a weak result comes from the product or from patchy use."},
+    {id:"ok",pill:["On track"],when:"Customer reports a change",send:"A prompt to share a review and a note on what to pair it with.",learn:"Time to first visible change, by customer, from real photos."},
+    {id:"slow",pill:["Slow so far","Mixed use"],when:"No change by week 8",send:"An honest timeline reminder and proof content, before doubt sets in.",learn:"The point where customers start to doubt."},
+    {id:"doc",pill:["Talk to a doctor"],when:"No change after 12 weeks of regular use",send:"A doctor consultation offer and an alternative routine.",learn:"Which customers would otherwise have left without saying a word."},
+    {id:"stop",pill:["Pause"],when:"Painful reaction reported",send:"Pause advice and a support callback.",learn:"Irritation cases, including after-shave use, as they happen."}
+  ];
+  var bars=SIM.map(function(r){var s=r[1];return '<div class="bar-row"><span>'+r[0]+'</span><div class="stack" role="img" aria-label="'+r[0]+': '+s[0]+'% lighter, '+s[1]+'% a little lighter, '+s[2]+'% same, '+s[3]+'% hard to tell">'+s.map(function(p,i){return '<b style="width:'+p+'%;background:var(--seg'+(i+1)+')"></b>'}).join("")+'</div></div>'}).join("");
+  return '<section class="block"><span class="eyebrow">For Be Bodywise</span><h1>The silent churn becomes a signal</h1>'+
+  '<p class="muted">Today the brand learns that a roll-on customer is unhappy when they stop buying. With check-ins, it sees doubt building and can step in at the right week.</p></section>'+
+  '<section class="block"><h2>What the brand would see</h2><div class="demo">Simulated data for illustration. These are not real results.</div>'+
+  '<div class="bars">'+bars+'</div>'+
+  '<div class="legend"><span><i style="background:var(--seg1)"></i>Lighter</span><span><i style="background:var(--seg2)"></i>A little lighter</span><span><i style="background:var(--seg3)"></i>Same</span><span><i style="background:var(--seg4)"></i>Hard to tell</span></div>'+
+  '<div class="tbl"><table><thead><tr><th>Check-in</th><th>Lighter</th><th>A little</th><th>Same</th><th>Unsure</th></tr></thead><tbody>'+SIM.map(function(r){return '<tr><td>'+r[0]+'</td>'+r[1].map(function(p){return '<td>'+p+'%</td>'}).join("")+'</tr>'}).join("")+'</tbody></table></div></section>'+
+  '<section class="block"><h2>Moments to step in</h2><p class="muted small">Each rule fires from what the customer logs. '+(v?"The one that would fire for your current journey is highlighted.":"")+'</p><div>'+
+  T.map(function(t){var on=t.pill.indexOf(k)>-1;return '<div class="trig'+(on?" on":"")+'">'+(on?'<span class="you">Fires for this journey</span>':"")+'<span class="when">'+t.when+'</span><span class="small"><b>Customer gets:</b> '+t.send+'</span><span class="small muted"><b>Brand learns:</b> '+t.learn+'</span></div>'}).join("")+'</div></section>';
+}
+
+/* ---------- events ---------- */
+document.addEventListener("click",function(e){
+  var g=e.target.closest("[data-go]");if(g){e.preventDefault();go(g.getAttribute("data-go"));return}
+  var a=e.target.closest("[data-act]");if(!a)return;var act=a.getAttribute("data-act");
+  if(act==="demo-track"){makeDemo("track");view="journey";render();window.scrollTo(0,0)}
+  else if(act==="demo-slow"){makeDemo("slow");view="journey";render();window.scrollTo(0,0)}
+  else if(act==="reset"){S={started:false};save();view="journey";render();window.scrollTo(0,0)}
+  else if(act==="begin"){
+    var r=$("input[name=expect]:checked"),ex=r&&r.value!=="none"?+r.value:null,u=$("input[name=using]:checked");
+    S={started:true,demo:false,already:!!(u&&u.value==="yes"),product:"Underarm roll-on (brightening)",start:iso(today()),expect:ex,checkins:[]};save();go("checkin");
+  }
+});
+window.addEventListener("hashchange",function(){var h=location.hash.slice(1);if(VIEWS.some(function(v){return v[0]===h})&&h!==view){view=h;render()}});
+var tt;function toast(m){var t=$("#toast");t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(function(){t.hidden=true},3200)}
+
+try{var h0=location.hash.slice(1);if(VIEWS.some(function(v){return v[0]===h0}))view=h0}catch(e){}
+if(!S||typeof S!=="object"||!S.started||!Array.isArray(S.checkins))S={started:false};
+render();
+})();
+</script>
+
+</body>
+</html>
